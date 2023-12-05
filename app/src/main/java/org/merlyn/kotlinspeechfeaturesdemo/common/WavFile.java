@@ -10,7 +10,7 @@ import java.io.IOException;
 public class WavFile {
     private enum IOState {READING, WRITING, CLOSED}
 
-    private final static int BUFFER_SIZE = 4096;
+    private final static int BUFFER_SIZE = 409600;
 
     private final static int FMT_CHUNK_ID = 0x20746D66;
     private final static int DATA_CHUNK_ID = 0x61746164;
