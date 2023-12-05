@@ -18,44 +18,56 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun performSsc() {
         viewModelScope.launch(Dispatchers.IO) {
-            val wav = loadWavFile(fileFromAsset("audioSample", "english.wav"))
-            val result = speechFeatures.ssc(MathUtils.normalize(wav), nFilt = 64)
-            Log.d(TAG, "ssc output:")
-            result.forEach {
-                Log.d(TAG, it.contentToString())
+            val files = fileFromAsset("audioSample")
+            for (file in files) {
+                val wav = loadWavFile(file)
+                val result = speechFeatures.ssc(MathUtils.normalize(wav), nFilt = 64)
+                Log.d(TAG, "ssc output for ${file.name}:")
+                result.forEach {
+                    Log.d(TAG, it.contentToString())
+                }
             }
         }
     }
 
     fun performMfcc() {
         viewModelScope.launch(Dispatchers.IO) {
-            val wav = loadWavFile(fileFromAsset("audioSample", "english.wav"))
-            val result = speechFeatures.mfcc(MathUtils.normalize(wav), nFilt = 64)
-            Log.d(TAG, "mfcc output:")
-            result.forEach {
-                Log.d(TAG, it.contentToString())
+            val files = fileFromAsset("audioSample")
+            for (file in files) {
+                val wav = loadWavFile(file)
+                val result = speechFeatures.ssc(MathUtils.normalize(wav), nFilt = 64)
+                Log.d(TAG, "mfcc output for ${file.name}:")
+                result.forEach {
+                    Log.d(TAG, it.contentToString())
+                }
             }
         }
     }
 
     fun performFbank() {
         viewModelScope.launch(Dispatchers.IO) {
-            val wav = loadWavFile(fileFromAsset("audioSample", "english.wav"))
-            val result = speechFeatures.fbank(MathUtils.normalize(wav), nFilt = 64)
-            Log.d(TAG, "fbank output:")
-            result.features.forEach {
-                Log.d(TAG, it.contentToString())
+            val files = fileFromAsset("audioSample")
+            for (file in files) {
+                val wav = loadWavFile(file)
+                val result = speechFeatures.ssc(MathUtils.normalize(wav), nFilt = 64)
+                Log.d(TAG, "fbank output for ${file.name}:")
+                result.forEach {
+                    Log.d(TAG, it.contentToString())
+                }
             }
         }
     }
 
     fun performLogfbank() {
         viewModelScope.launch(Dispatchers.IO) {
-            val wav = loadWavFile(fileFromAsset("audioSample", "english.wav"))
-            val result = speechFeatures.logfbank(MathUtils.normalize(wav), nFilt = 64)
-            Log.d(TAG, "logfbank output:")
-            result.forEach {
-                Log.d(TAG, it.contentToString())
+            val files = fileFromAsset("audioSample")
+            for (file in files) {
+                val wav = loadWavFile(file)
+                val result = speechFeatures.ssc(MathUtils.normalize(wav), nFilt = 64)
+                Log.d(TAG, "logbank output for ${file.name}:")
+                result.forEach {
+                    Log.d(TAG, it.contentToString())
+                }
             }
         }
     }
@@ -64,17 +76,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val wavFile = WavFile.openWavFile(file)
         val numFrames = wavFile.numFrames.toInt()
         val channels = wavFile.numChannels
-        val loopCounter: Int = numFrames * channels / 4096+1
+        val loopCounter: Int = numFrames * channels / 4096 + 1
         val intBuffer = IntArray(numFrames)
-        for (i in 0 until loopCounter){
+        for (i in 0 until loopCounter) {
             wavFile.readFrames(intBuffer, numFrames)
         }
         return intBuffer
     }
 
-    private fun fileFromAsset(directory: String, name: String): File {
+    private fun fileFromAsset(directory: String): List<File> {
         val context = getApplication<Application>()
         val cacheDir = context.cacheDir
-        return File("$cacheDir/$name").apply { writeBytes(context.assets.open("$directory/$name").readBytes()) }
+        val assetManager = context.assets
+        val files = assetManager.list(directory) ?: emptyArray()
+
+        return files.map { fileName ->
+            val file = File("$cacheDir/$fileName")
+            file.apply {
+                writeBytes(assetManager.open("$directory/$fileName").readBytes())
+            }
+        }
     }
 }
+
+//    private fun fileFromAsset(directory: String, name: String): File {
+//        val context = getApplication<Application>()
+//        val cacheDir = context.cacheDir
+//        return File("$cacheDir/$name").apply { writeBytes(context.assets.open("$directory/$name").readBytes()) }
+//    }
+//}

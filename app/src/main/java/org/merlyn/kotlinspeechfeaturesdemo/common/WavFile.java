@@ -269,8 +269,14 @@ public class WavFile {
             if (frameCounter == numFrames) return f;
 
             for (int c = 0; c < numChannels; c++) {
-                sampleBuffer[offset] = (int) readSample();
-                offset++;
+                // Check if the offset is within the valid range of the sampleBuffer array
+                if (offset < sampleBuffer.length) {
+                    sampleBuffer[offset] = (int) readSample();
+                    offset++;
+                } else {
+                    // Handle the case where the offset is out of bounds
+                    throw new WavFileException("ArrayIndexOutOfBoundsException: Offset is out of bounds.");
+                }
             }
 
             frameCounter++;
@@ -278,6 +284,7 @@ public class WavFile {
 
         return numFramesToRead;
     }
+
 
     public void close() throws IOException {
         // Close the input stream and set to null

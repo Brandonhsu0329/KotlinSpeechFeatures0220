@@ -9,13 +9,13 @@ Pod::Spec.new do |spec|
     spec.vendored_frameworks      = 'build/cocoapods/framework/KotlinSpeechFeatures.framework'
     spec.libraries                = 'c++'
     spec.ios.deployment_target = '14.1'
-
-
+                
+                
     spec.pod_target_xcconfig = {
         'KOTLIN_PROJECT_PATH' => ':kotlinspeechfeatures',
         'PRODUCT_MODULE_NAME' => 'KotlinSpeechFeatures',
     }
-
+                
     spec.script_phases = [
         {
             :name => 'Build kotlinspeechfeatures',
@@ -35,5 +35,5 @@ Pod::Spec.new do |spec|
             SCRIPT
         }
     ]
-
+                
 end
