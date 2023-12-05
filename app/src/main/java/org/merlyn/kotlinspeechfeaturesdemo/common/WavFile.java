@@ -227,35 +227,13 @@ public class WavFile {
                 bufferPointer = 0;
             }
 
-            int v = buffer[bufferPointer];
-            if (b < bytesPerSample - 1 || bytesPerSample == 1) v &= 0xFF;
+            int v = buffer[bufferPointer] & 0xFF;
             val += v << (b * 8);
 
             bufferPointer++;
         }
 
         return val;
-    }
-
-    public int readFrames(float[] sampleBuffer, int numFramesToRead) throws IOException, WavFileException {
-        return readFramesInternal(sampleBuffer, 0, numFramesToRead);
-    }
-
-    private int readFramesInternal(float[] sampleBuffer, int offset, int numFramesToRead) throws IOException, WavFileException {
-        if (ioState != IOState.READING) throw new IOException("Cannot read from WavFile instance");
-
-        for (int f = 0; f < numFramesToRead; f++) {
-            if (frameCounter == numFrames) return f;
-
-            for (int c = 0; c < numChannels; c++) {
-                sampleBuffer[offset] = floatOffset + (float) readSample() / floatScale;
-                offset++;
-            }
-
-            frameCounter++;
-        }
-
-        return numFramesToRead;
     }
 
     public int readFrames(int[] sampleBuffer, int numFramesToRead) throws IOException, WavFileException {
@@ -284,6 +262,7 @@ public class WavFile {
 
         return numFramesToRead;
     }
+
 
 
     public void close() throws IOException {
