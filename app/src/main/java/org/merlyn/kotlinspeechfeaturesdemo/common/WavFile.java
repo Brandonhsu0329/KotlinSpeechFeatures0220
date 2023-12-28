@@ -1,6 +1,8 @@
 package org.merlyn.kotlinspeechfeaturesdemo.common;
 
 
+import android.util.Log;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,7 +12,7 @@ import java.io.IOException;
 public class WavFile {
     private enum IOState {READING, WRITING, CLOSED}
 
-    private final static int BUFFER_SIZE = 409600;
+    private final static int BUFFER_SIZE = 4096;
 
     private final static int FMT_CHUNK_ID = 0x20746D66;
     private final static int DATA_CHUNK_ID = 0x61746164;
@@ -237,29 +239,36 @@ public class WavFile {
     }
 
     public int readFrames(int[] sampleBuffer, int numFramesToRead) throws IOException, WavFileException {
+//        Log.d("Tag123", "numFrames");
         return readFramesInternal(sampleBuffer, 0, numFramesToRead);
     }
 
     private int readFramesInternal(int[] sampleBuffer, int offset, int numFramesToRead) throws IOException, WavFileException {
         if (ioState != IOState.READING) throw new IOException("Cannot read from WavFile instance");
 
+//        Log.d("Tag123", "numChannels: " + numChannels);
+
         for (int f = 0; f < numFramesToRead; f++) {
             if (frameCounter == numFrames) return f;
 
-            for (int c = 0; c < numChannels; c++) {
+            for (int c = 0; c < 1; c++) {
                 // Check if the offset is within the valid range of the sampleBuffer array
                 if (offset < sampleBuffer.length) {
                     sampleBuffer[offset] = (int) readSample();
                     offset++;
+//                    Log.d("Tag123", "offset:"+ offset );
                 } else {
+//                    Log.d("Tag123", "offset value false: " + offset);
                     // Handle the case where the offset is out of bounds
                     throw new WavFileException("ArrayIndexOutOfBoundsException: Offset is out of bounds.");
+
                 }
             }
 
+
             frameCounter++;
         }
-
+//        Log.d("Tag123", "Offset value end: " + offset);
         return numFramesToRead;
     }
 

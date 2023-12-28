@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import kotlinx.android.synthetic.main.activity_main.*
 import org.merlyn.kotlinspeechfeaturesdemo.R
+import org.merlyn.kotlinspeechfeatures.SpeechFeatures
 
 class MainActivity : AppCompatActivity() {
 
@@ -23,6 +24,7 @@ class MainActivity : AppCompatActivity() {
         cardMfcc.setOnClickListener {
             Toast.makeText(this, "MFCC called. Check logcat.", Toast.LENGTH_LONG).show()
             viewModel.performMfcc()
+
         }
 
         cardFbank.setOnClickListener {

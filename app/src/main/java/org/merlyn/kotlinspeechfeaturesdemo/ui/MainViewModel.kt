@@ -9,16 +9,21 @@ import kotlinx.coroutines.launch
 import org.merlyn.kotlinspeechfeatures.MathUtils
 import org.merlyn.kotlinspeechfeatures.SpeechFeatures
 import org.merlyn.kotlinspeechfeaturesdemo.common.WavFile
+import org.nield.kotlinstatistics.kurtosis
+import org.nield.kotlinstatistics.skewness
 import java.io.File
-
+import kotlin.math.pow
+import kotlin.math.sqrt
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val TAG = "KotlinSpeechFeatures"
     private val speechFeatures = SpeechFeatures()
 
+
+    //這邊將audioSample內的所有WAV檔案讀入，每個fun都有
     fun performSsc() {
         viewModelScope.launch(Dispatchers.IO) {
-            val files = fileFromAsset("audioSample")
+            val files = fileFromAsset("audioSample")//在Assety資料夾中
             for (file in files) {
                 val wav = loadWavFile(file)
                 val result = speechFeatures.ssc(MathUtils.normalize(wav), nFilt = 64)
@@ -29,18 +34,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+    fun calculateSD(numArray: List<Float>): Double {
+        var sum = 0.0
+        var standardDeviation = 0.0
+        for (num in numArray) {
+            sum += num
+        }
+        val mean = sum / numArray.size
+        for (num in numArray) {
+            standardDeviation += Math.pow(num - mean, 2.0)
+        }
+        val divider = numArray.size - 1
+        return Math.sqrt(standardDeviation / divider)
+    }
+
+
 
     fun performMfcc() {
         viewModelScope.launch(Dispatchers.IO) {
             val files = fileFromAsset("audioSample")
+            val features = mutableListOf<Double>()
+
             for (file in files) {
                 val wav = loadWavFile(file)
-                val result = speechFeatures.ssc(MathUtils.normalize(wav), nFilt = 64)
+                val result = speechFeatures.mfcc(MathUtils.normalize(wav), nFilt = 64)
+                val mfccSize = result[0].size
+
+                for (i in 0 until mfccSize) {
+                    val columnValues = result.map { it[i] }
+
+                    // 計算平均值
+                    val average = columnValues.average()
+                    features.add(average)
+
+                    // 計算標準差
+                    val stdDev = calculateSD(columnValues)
+                    features.add(stdDev)
+
+                    // 計算偏態
+                    val skewness = columnValues.kurtosis
+                    features.add(skewness)
+
+                    // 計算峰度
+                    val kurtosisValue = columnValues.skewness
+                    features.add(kurtosisValue)
+                }
                 Log.d(TAG, "mfcc output for ${file.name}:")
                 result.forEach {
                     Log.d(TAG, it.contentToString())
                 }
             }
+            Log.d(TAG, "Features 0-51: $features")
         }
     }
 
@@ -79,6 +123,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val loopCounter: Int = numFrames * channels / 4096 + 1
         val intBuffer = IntArray(numFrames)
         for (i in 0 until loopCounter) {
+//目前卡這
+            Log.d("Tag123", "numFrames: $numFrames")
+            Log.d("Tag123", "loopCounter: $loopCounter")
+            Log.d("Tag123", "channels: $channels")
+            Log.d("Tag123", "intBuffer: $intBuffer")
+            Log.d("Tag123", "numFrames: $numFrames")
+
             wavFile.readFrames(intBuffer, numFrames)
         }
         return intBuffer
