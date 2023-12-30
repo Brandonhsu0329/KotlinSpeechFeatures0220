@@ -12,6 +12,7 @@ import org.merlyn.kotlinspeechfeaturesdemo.common.WavFile
 import org.nield.kotlinstatistics.kurtosis
 import org.nield.kotlinstatistics.skewness
 import java.io.File
+import kotlin.math.log
 import kotlin.math.pow
 import kotlin.math.sqrt
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -57,8 +58,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             for (file in files) {
                 val wav = loadWavFile(file)
-                val result = speechFeatures.mfcc(MathUtils.normalize(wav), nFilt = 64)
+                val result = speechFeatures.mfcc(MathUtils.normalize(wav))
                 val mfccSize = result[0].size
+
+
+                val(result2, energy)= speechFeatures.mfcc(MathUtils.normalize(wav))
+                Log.d("TAG555", "result2: ${result2.contentToString()}")
+                Log.d("TAG555", " energy: ${energy.contentToString()}")
+
+
+                for (row in result) {
+//                    Log.d("TAG12345", row.contentToString())
+                }
+
+
 
                 for (i in 0 until mfccSize) {
                     val columnValues = result.map { it[i] }
@@ -79,12 +92,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val kurtosisValue = columnValues.skewness
                     features.add(kurtosisValue)
                 }
-                Log.d(TAG, "mfcc output for ${file.name}:")
+//                Log.d(TAG, "mfcc output for ${file.name}:")
                 result.forEach {
                     Log.d(TAG, it.contentToString())
                 }
             }
-            Log.d(TAG, "Features 0-51: $features")
+            Log.d("TAG end", "Features 0-51: $features")
         }
     }
 
@@ -122,13 +135,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val channels = wavFile.numChannels
         val loopCounter: Int = numFrames * channels / 4096 + 1
         val intBuffer = IntArray(numFrames)
+//        Log.d("tag numFrames",numFrames.toString())
         for (i in 0 until loopCounter) {
-//目前卡這
-            Log.d("Tag123", "numFrames: $numFrames")
-            Log.d("Tag123", "loopCounter: $loopCounter")
-            Log.d("Tag123", "channels: $channels")
-            Log.d("Tag123", "intBuffer: $intBuffer")
-            Log.d("Tag123", "numFrames: $numFrames")
 
             wavFile.readFrames(intBuffer, numFrames)
         }

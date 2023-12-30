@@ -34,7 +34,7 @@ class SpeechFeatures(private val fft: FFT = KotlinFFT()) {
         winStep: Float = 0.01f,
         numCep: Int = 13,
         nFilt: Int = 26,
-        nfft: Int? = 512,
+        nfft: Int? = 2048,
         lowFreq: Int = 0,
         highFreq: Int? = null,
         preemph: Float = 0.97f,
@@ -55,6 +55,7 @@ class SpeechFeatures(private val fft: FFT = KotlinFFT()) {
             preemph,
             winFunc
         )
+
         val logFeat = runBlocking { floatArrayLog(feat) }
         val lifterDctFeat = runBlocking {
             dct2withLifter(

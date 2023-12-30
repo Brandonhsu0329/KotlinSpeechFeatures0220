@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 
 public class WavFile {
@@ -231,44 +232,41 @@ public class WavFile {
 
             int v = buffer[bufferPointer] & 0xFF;
             val += v << (b * 8);
-
             bufferPointer++;
         }
-
-        return val;
+//        Log.d("Tagval", "val:" + val);
+        return (short)val;
     }
 
     public int readFrames(int[] sampleBuffer, int numFramesToRead) throws IOException, WavFileException {
-//        Log.d("Tag123", "numFrames");
         return readFramesInternal(sampleBuffer, 0, numFramesToRead);
     }
 
     private int readFramesInternal(int[] sampleBuffer, int offset, int numFramesToRead) throws IOException, WavFileException {
         if (ioState != IOState.READING) throw new IOException("Cannot read from WavFile instance");
 
-//        Log.d("Tag123", "numChannels: " + numChannels);
-
         for (int f = 0; f < numFramesToRead; f++) {
             if (frameCounter == numFrames) return f;
-
+//雙音軌改單音軌
             for (int c = 0; c < 1; c++) {
                 // Check if the offset is within the valid range of the sampleBuffer array
                 if (offset < sampleBuffer.length) {
-                    sampleBuffer[offset] = (int) readSample();
+                    sampleBuffer[offset] = (short) readSample();
                     offset++;
-//                    Log.d("Tag123", "offset:"+ offset );
+//                    Log.d("TagsampleBuffer", "sampleBuffer:" + sampleBuffer);
+
+
                 } else {
-//                    Log.d("Tag123", "offset value false: " + offset);
                     // Handle the case where the offset is out of bounds
                     throw new WavFileException("ArrayIndexOutOfBoundsException: Offset is out of bounds.");
-
                 }
             }
 
 
             frameCounter++;
         }
-//        Log.d("Tag123", "Offset value end: " + offset);
+//        Log.d("TagsampleBuffer", "sampleBuffer: " + Arrays.toString(sampleBuffer));
+
         return numFramesToRead;
     }
 

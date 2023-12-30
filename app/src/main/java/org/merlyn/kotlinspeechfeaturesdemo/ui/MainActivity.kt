@@ -1,7 +1,9 @@
 package org.merlyn.kotlinspeechfeaturesdemo.ui
 
+import android.content.ContentValues.TAG
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
 import kotlinx.android.synthetic.main.activity_main.*
@@ -24,6 +26,7 @@ class MainActivity : AppCompatActivity() {
         cardMfcc.setOnClickListener {
             Toast.makeText(this, "MFCC called. Check logcat.", Toast.LENGTH_LONG).show()
             viewModel.performMfcc()
+//            Log.d("TAG123", "123")
 
         }
 
