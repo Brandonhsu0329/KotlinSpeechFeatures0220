@@ -58,13 +58,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             for (file in files) {
                 val wav = loadWavFile(file)
-                val result = speechFeatures.mfcc(MathUtils.normalize(wav))
+//                val result = speechFeatures.mfcc123123(MathUtils.normalize(wav))
+                Log.d("TAG555", "fbank_frames:00000000000000000")
+                val result = speechFeatures.mfcc(wav.map { it.toFloat() }.toFloatArray())
                 val mfccSize = result[0].size
 
 
-                val(result2, energy)= speechFeatures.mfcc(MathUtils.normalize(wav))
-                Log.d("TAG555", "result2: ${result2.contentToString()}")
-                Log.d("TAG555", " energy: ${energy.contentToString()}")
+                val featResult = speechFeatures.mfcc123123(wav.map { it.toFloat() }.toFloatArray())
+                Log.d("TAG555", "fbank_frames_size: ${featResult}")
+//                Log.d("TAG555", "fbank_frames: ${featResult.contentToString()}")
 
 
                 for (row in result) {
@@ -135,13 +137,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val channels = wavFile.numChannels
         val loopCounter: Int = numFrames * channels / 4096 + 1
         val intBuffer = IntArray(numFrames)
-//        Log.d("tag numFrames",numFrames.toString())
-        for (i in 0 until loopCounter) {
+        val framesPerBuffer = 4096 / channels
+//        val intBuffer = Array(channels) { IntArray(numFrames) }
 
-            wavFile.readFrames(intBuffer, numFrames)
+        Log.d("tag numFrames",numFrames.toString())
+        for (i in 0 until loopCounter) {
+            wavFile.readFrames(intBuffer, framesPerBuffer)
         }
+        Log.d("Tag666","1")
         return intBuffer
+
+//        return flattenBuffer(intBuffer)
     }
+
+//    private fun flattenBuffer(inputBuffer: Array<IntArray>): IntArray {
+//        val numChannels = inputBuffer.size
+//        val numFrames = inputBuffer[0].size // Assuming all channels have the same number of frames
+//
+//        val outputBuffer = IntArray(numChannels * numFrames)
+//
+//        for (c in 0 until numChannels) {
+//            for (f in 0 until numFrames) {
+//                outputBuffer[c * numFrames + f] = inputBuffer[c][f]
+//            }
+//        }
+//
+//        return outputBuffer
+//    }
+
 
     private fun fileFromAsset(directory: String): List<File> {
         val context = getApplication<Application>()

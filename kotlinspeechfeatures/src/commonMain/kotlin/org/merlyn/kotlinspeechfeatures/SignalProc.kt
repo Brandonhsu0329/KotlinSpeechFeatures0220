@@ -19,7 +19,66 @@ class SignalProc(private val fft: FFT = KotlinFFT()) {
      * @param strideTrick use stride trick to compute the rolling window and window multiplication faster
      * @return an array of frames. Size is NUMFRAMES by frame_len.
      */
+    fun roundHalfUp(number: Double): Int {
+        return number.toInt()
+    }
+
+    fun framesig123123(
+        signal: FloatArray,
+        frameLen: Int,
+        frameStep: Int,
+        winFunc: ((Int) -> FloatArray) = { FloatArray(it) { 1.0f } }
+    ): Array<FloatArray> {
+
+        val slen = signal.size
+        val roundedFrameLen = roundHalfUp(frameLen.toDouble())
+        val roundedFrameStep = roundHalfUp(frameStep.toDouble())
+
+        val numFrames = if (slen <= roundedFrameLen) {
+            1
+        } else {
+            1 + ((slen - roundedFrameLen) / roundedFrameStep).toInt()
+        }
+
+        val padLen = ((numFrames - 1) * roundedFrameStep + roundedFrameLen).toInt()
+
+        val zeros = if (padLen >= slen) {
+            FloatArray(padLen - slen)
+        } else {
+            FloatArray(0)
+        }
+
+        val padSignal = signal + zeros
+
+        val indices = Array(numFrames) {
+            IntArray(roundedFrameLen.toInt()) { i ->
+                i + it * roundedFrameStep.toInt()
+            }
+        }
+
+//        val frames = Array(numFrames) { FloatArray(roundedFrameLen) { j ->
+//            if (indices[it][j] < slen) padSignal[indices[it][j]] else 0.0f
+//        } }
+        val frames = Array(numFrames) { frameIndex ->
+            FloatArray(roundedFrameLen.toInt()) { j ->
+                if (indices[frameIndex][j] < slen) padSignal[indices[frameIndex][j]] else 0.0f
+            }
+        }
+
+        val win = Array(numFrames) { winFunc(roundedFrameLen.toInt()) }
+
+        return Array(numFrames) { frameIndex ->
+            FloatArray(roundedFrameLen) { j ->
+                frames[frameIndex][j] * win[frameIndex][j]
+            }
+        }
+    }
+
+
+
+
     fun framesig(
+
         signal: FloatArray,
         frameLen: Int,
         frameStep: Int,
@@ -31,6 +90,7 @@ class SignalProc(private val fft: FFT = KotlinFFT()) {
         } else {
             1
         }
+
 
         val indices = IntArray(nFrames * frameLen)
         run {
@@ -189,22 +249,19 @@ class SignalProc(private val fft: FFT = KotlinFFT()) {
                 }
             }
         }
-        return pspec
+        return mspec
     }
 
-    /**
-     * Perform preemphasis on the input signal.
-     * @param signal The signal to filter.
-     * @param coeff The preemphasis coefficient. 0 is no filter, default is 0.95.
-     * @return the filtered signal.
-     */
+
+
     fun preemphasis(signal: FloatArray, coeff: Float=0.95f): FloatArray {
         val preemph = FloatArray(signal.size)
-        val loopEnd = signal.size-1
-        for (i in 1..loopEnd) {
-            preemph[i] = signal[i] - signal[i-1] * coeff
+        val loopEnd = signal.size*-2
+        for (i in 2..loopEnd) {
+            preemph[i] = signal[i] - signal[i-2] * coeff
         }
         preemph[0] = signal[0]
+        preemph[1] = signal[1]
         return preemph
     }
 

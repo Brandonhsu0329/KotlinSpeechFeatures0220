@@ -73,6 +73,8 @@ class SpeechFeatures(private val fft: FFT = KotlinFFT()) {
         return lifterDctFeat
     }
 
+
+
     /**
      * Compute Mel-filterbank energy features from an audio signal.
      * @param signal the audio signal from which to compute features. Should be an N*1 array
@@ -116,6 +118,95 @@ class SpeechFeatures(private val fft: FFT = KotlinFFT()) {
             return@runBlocking feat.map { it.filterIndexed { index, _ -> index < nFilt }.toFloatArray() }.toTypedArray() to energy
         }
         return FBankResult(feat, energy)
+    }
+
+    fun mfcc123123(
+        signal: FloatArray,
+        sampleRate: Int = 16000,
+        winLen: Float = 0.025f,
+        winStep: Float = 0.01f,
+        numCep: Int = 13,
+        nFilt: Int = 26,
+        nfft: Int? = 2048,
+        lowFreq: Int = 0,
+        highFreq: Int? = null,
+        preemph: Float = 0.97f,
+        ceplifter: Int = 22,
+        appendEnergy: Boolean = true,
+        //        winFunc: FloatArray? = null
+        //        12/30測試
+        winFunc: (Int) -> FloatArray = { size -> FloatArray(size) { 1.0f } }
+
+    ): Int {
+        val mfccNfft = nfft ?: calculateNfft(sampleRate,winLen)
+        val AA = fbank123123(
+            signal,
+            sampleRate,
+            winLen,
+            winStep,
+            nFilt,
+            mfccNfft,
+            lowFreq,
+            highFreq,
+            preemph,
+            winFunc
+        )
+//
+//        val logFeat = runBlocking { floatArrayLog(feat) }
+//        val lifterDctFeat = runBlocking {
+//            dct2withLifter(
+//                feat=logFeat,
+//                aNCep = numCep,
+//                aNFilters = nFilt,
+//                ceplifter=ceplifter
+//            )
+//        }
+//        if (appendEnergy){ // replace first cepstral coefficient with log of frame energy
+//            for ((index, eng) in energy.withIndex()){
+//                lifterDctFeat[index][0] = ln(eng)
+//            }
+//        }
+//        return lifterDctFeat
+        return AA
+    }
+
+    fun fbank123123(
+        signal: FloatArray,
+        sampleRate: Int=16000,
+        winLen: Float=0.025f,
+        winStep: Float=0.01f,
+        nFilt: Int=26,
+        nfft: Int=512,
+        lowFreq: Int=0,
+        highFreq: Int? = null,
+        preemph: Float = 0.97f,
+//        winFunc: FloatArray? = null
+//        12/30測試 FloatArray
+        winFunc: (Int) -> FloatArray = { size -> FloatArray(size) { 1.0f } }
+
+
+    ): Int {
+        val highFreq= highFreq ?: sampleRate/2
+        val premphSignal = signalProc.preemphasis(signal, preemph)
+        val frameLen: Int = (winLen * sampleRate).toInt()
+        val frameStep: Int = (winStep * sampleRate).toInt()
+        val frames = signalProc.framesig123123(
+            signal = premphSignal,
+            frameLen = frameLen,
+            frameStep = frameStep,
+//            winFunc = winFunc
+//            12/30測試
+            winFunc = winFunc
+        )
+//        val (feat, energy) = runBlocking {
+//            val pspec = signalProc.powspec123123(frames, nfft)
+//            val energy = calcEnergy(pspec) // stores the total energy in each frame.
+//            val fb = getFilterBanks(nFilt, nfft, sampleRate, lowFreq, highFreq)
+//            val feat = calcFeat(pspec, fb)
+//            return@runBlocking feat.map { it.filterIndexed { index, _ -> index < nFilt }.toFloatArray() }.toTypedArray() to energy
+//        }
+        val pspec = signalProc.powspec(frames, nfft)
+        return premphSignal.size
     }
 
     /**
