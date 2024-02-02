@@ -1,13 +1,11 @@
 package org.merlyn.kotlinspeechfeaturesdemo.common;
 
 
-import android.util.Log;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
+
 
 
 public class WavFile {
@@ -57,25 +55,25 @@ public class WavFile {
         return numFrames;
     }
 
-//    public long getFramesRemaining() {
-//        return numFrames - frameCounter;
-//    }
+    public long getFramesRemaining() {
+        return numFrames - frameCounter;
+    }
 
-//    public long getSampleRate() {
-//        return sampleRate;
-//    }
+    public long getSampleRate() {
+        return sampleRate;
+    }
 
-//    public int getValidBits() {
-//        return validBits;
-//    }
+    public int getValidBits() {
+        return validBits;
+    }
 
-//    public long getDuration() {
-//        return getNumFrames() / getSampleRate();
-//    }
+    public long getDuration() {
+        return getNumFrames() / getSampleRate();
+    }
 
-//    public long getFileSize() {
-//        return fileSize;
-//    }
+    public long getFileSize() {
+        return fileSize;
+    }
 
     public static WavFile openWavFile(File file) throws IOException, WavFileException {
         // Instantiate new Wavfile and store the file reference
@@ -100,13 +98,10 @@ public class WavFile {
         if (riffTypeID != RIFF_TYPE_ID) throw new WavFileException("Invalid Wav Header data, incorrect riff type ID");
 
         // Check that the file size matches the number of bytes listed in header
-
-        long filelength = (file.length());
-//        Log.d("Tagval", "chunkSize:"+chunkSize);
-//        Log.d("Tagval", "file.length():"+filelength);
-        if (filelength != chunkSize + 8) {
+        if (file.length() != chunkSize + 8) {
             throw new WavFileException("Header chunk size (" + chunkSize + ") does not match file size (" + file.length() + ")");
         }
+
         wavFile.fileSize = chunkSize;
 
         boolean foundFormat = false;
@@ -164,7 +159,6 @@ public class WavFile {
                 // any extra format bytes
                 numChunkBytes -= 16;
                 if (numChunkBytes > 0) wavFile.iStream.skip(numChunkBytes);
-
             } else if (chunkID == DATA_CHUNK_ID) {
                 // Check if we've found the format chunk,
                 // If not, throw an exception as we need the format information
@@ -177,20 +171,12 @@ public class WavFile {
                     throw new WavFileException("Data Chunk size is not multiple of Block Align");
 
                 // Calculate the number of frames
-                wavFile.numFrames = (chunkSize / wavFile.blockAlign);
+                wavFile.numFrames = chunkSize / wavFile.blockAlign;
 
                 // Flag that we've found the wave data chunk
                 foundData = true;
 
-//                break;
-
-                // new!!!!! Break if there's no additional padding byte
-                if (chunkSize % wavFile.blockAlign == 0) break;
-
-                // Skip the padding byte
-                wavFile.iStream.skip(1);
                 break;
-
             } else {
                 // If an unknown chunk ID is found, just skip over the chunk data
                 wavFile.iStream.skip(numChunkBytes);
@@ -221,10 +207,6 @@ public class WavFile {
         return wavFile;
     }
 
-
-
-
-
     private static long getLE(byte[] buffer, int pos, int numBytes) {
         numBytes--;
         pos += numBytes;
@@ -234,8 +216,6 @@ public class WavFile {
 
         return val;
     }
-
-
 
     private long readSample() throws IOException, WavFileException {
         long val = 0;
@@ -247,151 +227,59 @@ public class WavFile {
                 bytesRead = read;
                 bufferPointer = 0;
             }
-            int v = buffer[bufferPointer] & 0xFF;
+
+            int v = buffer[bufferPointer];
+            if (b < bytesPerSample - 1 || bytesPerSample == 1) v &= 0xFF;
             val += v << (b * 8);
+
             bufferPointer++;
         }
-//        Log.d("Tagval", "bytesPerSample:"+bytesPerSample);
 
-//        Log.d("Tagval", "val:");
-        return (short)val;
+        return val;
     }
-
-//    private long readSample() throws IOException, WavFileException {
-//        long val = 0;  // 用於存儲讀取的音訊樣本值的變數
-//
-//        for (int c = 0; c < numChannels; c++) {  // 迴圈遍歷每個聲道
-//            for (int b = 0; b < bytesPerSample; b++) {  // 迴圈遍歷每個樣本的字節數
-//                if (bufferPointer == bytesRead) {  // 如果緩衝區中的數據已經讀取完畢
-//                    int read = iStream.read(buffer, 0, BUFFER_SIZE);  // 從文件中讀取更多的數據到緩衝區
-//                    if (read == -1) throw new WavFileException("Not enough data available");  // 如果無法讀取更多數據，拋出例外
-//                    Log.d("Tagval", "iii:1");
-//                    bytesRead = read;  // 更新已讀取的字節數
-//                    bufferPointer = 0;  // 重置緩衝區指針
-//                }
-//
-//                int v = buffer[bufferPointer] & 0xFF;  // 將字節轉換為無符號整數
-//                val += v << (b * 8);  // 通過位運算將每個字節的值累加到樣本值中
-//                bufferPointer++;  // 移動緩衝區指針到下一個字節
-//            }
-//
-//            // 如果需要進行字節對齊調整，則跳過填充字節
-//            if (wordAlignAdjust && (bytesPerSample % 2 == 1)) {
-//                bufferPointer++;
-//            }
-//        }
-//
-//        return val;  // 返回讀取的音訊樣本值
-//    }
-
-
 
     public int readFrames(int[] sampleBuffer, int numFramesToRead) throws IOException, WavFileException {
         return readFramesInternal(sampleBuffer, 0, numFramesToRead);
     }
-
-
-//chat1
-//    private int readFramesInternal(int[] sampleBuffer, int offset, int numFramesToRead) throws IOException, WavFileException {
-//        if (ioState != IOState.READING) throw new IOException("Cannot read from WavFile instance");
-//
-//        for (int f = 0; f < numFramesToRead; f++) {
-//            if (frameCounter == numFrames) return f;
-//
-//            for (int c = 0; c < numChannels; c++) {
-//                // Check if the offset is within the valid range of the sampleBuffer array
-//                if (offset < sampleBuffer.length) {
-//                    // 將讀取的音訊樣本存入 sampleBuffer 陣列
-//                    sampleBuffer[offset] = (short) readSample();
-//                    offset++;
-//                } else {
-//                    // 處理 offset 超出範圍的情況
-//                    throw new WavFileException("ArrayIndexOutOfBoundsException: Offset is out of bounds.");
-//                }
-//            }
-//
-//            frameCounter++;
-//        }
-//
-//        return numFramesToRead;
-//    }
-
 
     private int readFramesInternal(int[] sampleBuffer, int offset, int numFramesToRead) throws IOException, WavFileException {
         if (ioState != IOState.READING) throw new IOException("Cannot read from WavFile instance");
 
         for (int f = 0; f < numFramesToRead; f++) {
             if (frameCounter == numFrames) return f;
-//雙音軌改單音軌
-            for (int c = 0; c < numChannels; c++) {
-                // Check if the offset is within the valid range of the sampleBuffer array
-                if (offset < (sampleBuffer.length)*2) {
-                    sampleBuffer[offset] = (short) readSample();
-                    offset++;
-//                    Log.d("Tag444", "sampleBuffer[offset]"+offset);
 
-                } else {
-                    // Handle the case where the offset is out of bounds
-//                    Log.d("Tag444", "sampleBuffer:died"+offset);
-                    throw new WavFileException("ArrayIndexOutOfBoundsException: Offset is out of bounds.");
-                }
+            for (int c = 0; c < numChannels; c++) {
+                sampleBuffer[offset] = (int) readSample();
+                offset++;
             }
 
             frameCounter++;
         }
-//        Log.d("TagsampleBuffer", "sampleBuffer: " + Arrays.toString(sampleBuffer));
-//        Log.d("Tag444", "numFramesToRead:" + numFramesToRead);
-//        Log.d("Tag444", "sampleBuffer:" + sampleBuffer[132183]);
+
         return numFramesToRead;
     }
 
-//    private int readFramesInternal(int[][] sampleBuffer, int offset, int numFramesToRead) throws IOException, WavFileException {
-//        if (ioState != IOState.READING) throw new IOException("Cannot read from WavFile instance");
-//
-//        for (int f = 0; f < numFramesToRead; f++) {
-//            if (frameCounter == numFrames) return f;
-//
-//            for (int c = 0; c < numChannels; c++) {
-//                // Check if the offset is within the valid range of the sampleBuffer array
-//                if (offset < sampleBuffer[c].length) {
-//                    sampleBuffer[c][offset] = (int) readSample();
-//                } else {
-//                    // Handle the case where the offset is out of bounds
-//                    throw new WavFileException("ArrayIndexOutOfBoundsException: Offset is out of bounds.");
-//                }
-//            }
-//
-//            frameCounter++;
-//            offset++;
-//        }
-//
-//        return numFramesToRead;
-//    }
+    public void close() throws IOException {
+        // Close the input stream and set to null
+        if (iStream != null) {
+            iStream.close();
+            iStream = null;
+        }
 
+        if (oStream != null) {
+            // Write out anything still in the local buffer
+            if (bufferPointer > 0) oStream.write(buffer, 0, bufferPointer);
 
+            // If an extra byte is required for word alignment, add it to the end
+            if (wordAlignAdjust) oStream.write(0);
 
+            // Close the stream and set to null
+            oStream.close();
+            oStream = null;
+        }
 
-
-//    public void close() throws IOException {
-//        // Close the input stream and set to null
-//        if (iStream != null) {
-//            iStream.close();
-//            iStream = null;
-//        }
-//
-//        if (oStream != null) {
-//            // Write out anything still in the local buffer
-//            if (bufferPointer > 0) oStream.write(buffer, 0, bufferPointer);
-//
-//            // If an extra byte is required for word alignment, add it to the end
-//            if (wordAlignAdjust) oStream.write(0);
-//
-//            // Close the stream and set to null
-//            oStream.close();
-//            oStream = null;
-//        }
-//
-//        // Flag that the stream is closed
-//        ioState = IOState.CLOSED;
-//    }
+        // Flag that the stream is closed
+        ioState = IOState.CLOSED;
+    }
 }
+//Log.d("Tagval", "f:" + numFramesToRead);

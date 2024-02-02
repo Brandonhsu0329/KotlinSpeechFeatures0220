@@ -14,5 +14,6 @@ interface FFT {
      * the last one if axis is not specified. If n is even, the length of the transformed axis is
      * (n/2)+1. If n is odd, the length is (n+1)/2.
      */
+    //1.26
     fun rfft(signal: FloatArray, nfft: Int): Array<Complex>
 }

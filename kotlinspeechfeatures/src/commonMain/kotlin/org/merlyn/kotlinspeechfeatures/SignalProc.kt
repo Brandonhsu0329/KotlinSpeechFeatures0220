@@ -1,6 +1,7 @@
 package org.merlyn.kotlinspeechfeatures
 
 import kotlinx.coroutines.runBlocking
+import org.merlyn.kotlinspeechfeatures.fft.Complex
 import org.merlyn.kotlinspeechfeatures.fft.FFT
 import org.merlyn.kotlinspeechfeatures.fft.KotlinFFT
 import org.merlyn.kotlinspeechfeatures.internal.asyncForEachIndexed
@@ -30,50 +31,61 @@ class SignalProc(private val fft: FFT = KotlinFFT()) {
         winFunc: ((Int) -> FloatArray) = { FloatArray(it) { 1.0f } }
     ): Array<FloatArray> {
 
+        // 訊號總長度
         val slen = signal.size
+
+        // 將 frameLen 和 frameStep 轉換為浮點數，並進行四捨五入
         val roundedFrameLen = roundHalfUp(frameLen.toDouble())
         val roundedFrameStep = roundHalfUp(frameStep.toDouble())
 
+        // 計算 numFrames
         val numFrames = if (slen <= roundedFrameLen) {
             1
         } else {
-            1 + ((slen - roundedFrameLen) / roundedFrameStep).toInt()
+            1 + ((slen - roundedFrameLen) / roundedFrameStep + 0.5).roundToInt()
+
         }
 
+        // 計算 padLen
         val padLen = ((numFrames - 1) * roundedFrameStep + roundedFrameLen).toInt()
 
+        // 創建 zeros 陣列
         val zeros = if (padLen >= slen) {
             FloatArray(padLen - slen)
         } else {
             FloatArray(0)
         }
 
+        // 將 zeros 陣列與原始訊號相連接，得到 padSignal
         val padSignal = signal + zeros
 
+        // 創建 indices 二維陣列，用於指定每個框架的索引
         val indices = Array(numFrames) {
             IntArray(roundedFrameLen.toInt()) { i ->
-                i + it * roundedFrameStep.toInt()
+                (i + it * roundedFrameStep).toDouble().roundToInt()
             }
         }
 
-//        val frames = Array(numFrames) { FloatArray(roundedFrameLen) { j ->
-//            if (indices[it][j] < slen) padSignal[indices[it][j]] else 0.0f
-//        } }
+
+
+        // 創建 frames 二維陣列，用於存儲每個框架的值
         val frames = Array(numFrames) { frameIndex ->
             FloatArray(roundedFrameLen.toInt()) { j ->
+                // 如果索引在有效範圍內，則取 padSignal 中的值，否則為 0.0f
                 if (indices[frameIndex][j] < slen) padSignal[indices[frameIndex][j]] else 0.0f
             }
         }
 
+        // 使用 winFunc 函數創建 win 二維陣列
         val win = Array(numFrames) { winFunc(roundedFrameLen.toInt()) }
 
+        // 返回 frames 與 win 元素相乘的結果
         return Array(numFrames) { frameIndex ->
-            FloatArray(roundedFrameLen) { j ->
+            FloatArray(roundedFrameLen.toInt()) { j ->
                 frames[frameIndex][j] * win[frameIndex][j]
             }
         }
     }
-
 
 
 
@@ -213,22 +225,61 @@ class SignalProc(private val fft: FFT = KotlinFFT()) {
      * @param nfft the FFT length to use. If NFFT > frame_len, the frames are zero-padded.
      * @return If frames is an NxD matrix, output will be Nx(NFFT/2+1). Each row will be the magnitude spectrum of the corresponding frame.
      */
+    // 函數接受兩個參數，一個是包含音訊帧的二維數組 frames，另一個是FFT的大小 nfft
     fun magspec(frames : Array<FloatArray>, nfft : Int): Array<FloatArray> {
+        // 獲取音訊帧的寬度
         val frameWidth = frames[0].size
+        // 創建一個二維 FloatArray 來存放計算得到的幅度譜
         val mspec = Array(frames.size) { FloatArray(frameWidth) }
+        // 使用 Kotlin 協程運行非阻塞的異步處理
         runBlocking {
+            // 對每一個音訊帧進行異步處理
             frames.asyncForEachIndexed { index, frame ->
+                // 創建一個 ArrayList 用於存放絕對值
                 val absOutput = ArrayList<Float>(frameWidth+2)
-                val input = frame + FloatArray(nfft-frameWidth) // pad tail with zeros to return accurate dimensions (dims: 512,)
+                // 將每個音訊帧擴展為指定的 FFT 大小，將尾部補零以保持精確的維度
+                val input = frame + FloatArray(nfft-frameWidth)//nfft=2048,frameWidth=1103
+                // 使用 fft.rfft 函數計算複數頻譜，並轉換為列表
                 val result = fft.rfft(input, nfft).toList()
-                absOutput.addAll(result.subList(0, result.size/2-1).map {
+                // 將結果的前半部分（忽略對稱部分）轉換為絕對值，並添加到 absOutput 中
+                absOutput.addAll(result.subList(0, result.size / 2 - 1).map {
                     modul(it.re().toFloat(), it.im().toFloat())
                 })
+                // 將 absOutput 轉換為 FloatArray，並將其賦值給 mspec 的相應索引
+                mspec[index] = absOutput.toFloatArray()
+            }
+        }
+
+        return mspec
+    }
+
+    fun magspec123123(frames: Array<FloatArray>, nfft: Int): Array<FloatArray> {
+
+        val frameWidth = frames[0].size     //400
+        val mspec = Array(frames.size) { FloatArray(frameWidth) }
+
+        // 使用 Kotlin 協程運行非阻塞的異步處理
+        runBlocking {
+            // 對每一個音訊帧進行異步處理
+            frames.asyncForEachIndexed { index, frame ->
+                // 創建一個 ArrayList 用於存放絕對值
+                val absOutput = ArrayList<Float>(frameWidth + 2)
+                // 將每個音訊帧擴展為指定的 FFT 大小，將尾部補零以保持精確的維度（512,）
+                val input = frame + FloatArray(nfft- frameWidth)
+                // 下方式原本的
+                val result = fft.rfft(input, nfft).toList()
+
+                // 將結果的前半部分（忽略對稱部分）轉換為絕對值(包含實虛數合併)，並添加到 absOutput 中
+                absOutput.addAll(result.subList(0, result.size / 2 - 1).map {
+                    modul(it.re().toFloat(), it.im().toFloat())
+                })
+                // 將 absOutput 轉換為 FloatArray，並將其賦值給 mspec 的相應索引
                 mspec[index] = absOutput.toFloatArray()
             }
         }
         return mspec
     }
+
 
     /**
      * Compute the power spectrum of each frame in frames. If frames is an NxD matrix, output will be Nx(NFFT/2+1).
@@ -251,6 +302,21 @@ class SignalProc(private val fft: FFT = KotlinFFT()) {
         }
         return mspec
     }
+    fun powspec123123(frames: Array<FloatArray>, nfft: Int): Array<FloatArray>{
+        val fftOut = nfft / 2 + 1
+        val mspec = magspec123123(frames, nfft)
+//        val pspec = Array(mspec.size) { FloatArray(fftOut)}
+
+//        // Compute the power spectrum
+//        runBlocking {
+//            frames.asyncForEachIndexed { frameIndex, _ ->
+//                for ((index, element) in mspec[frameIndex].withIndex()){
+//                    pspec[frameIndex][index] = (1.0f/nfft * element.toDouble().pow(2.0)).toFloat()
+//                }
+//            }
+//        }
+        return mspec
+    }
 
 
 
@@ -262,7 +328,7 @@ class SignalProc(private val fft: FFT = KotlinFFT()) {
         }
         preemph[0] = signal[0]
         preemph[1] = signal[1]
-        return preemph
+        return signal
     }
 
     /**
